@@ -18,6 +18,7 @@ const NewTransaction = () => {
   
   const form = useForm({
     defaultValues: {
+      name: '',
       supplierName: '',
       supplierContact: '',
       goodsName: '',
@@ -36,6 +37,7 @@ const NewTransaction = () => {
       
       const newTransaction: Transaction = {
         id: generateId('txn'),
+        name: data.name || `Transaction ${generateId('').slice(0, 5)}`, // Adding name field here
         date: new Date().toISOString(),
         totalAmount: totalCost,
         status: data.status as 'completed' | 'pending' | 'cancelled',
@@ -84,6 +86,20 @@ const NewTransaction = () => {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Transaction Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter transaction name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
                 <FormField
                   control={form.control}
                   name="supplierName"
