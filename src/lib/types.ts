@@ -1,6 +1,7 @@
 
 export interface Transaction {
   id: string;
+  name: string; // New field for transaction name
   date: string;
   totalAmount: number;
   status: 'completed' | 'pending' | 'cancelled';
@@ -31,6 +32,7 @@ export interface Transportation {
   origin: string;
   destination: string;
   charges: number;
+  notes?: string; // New field for transportation notes
 }
 
 export interface LoadSold {

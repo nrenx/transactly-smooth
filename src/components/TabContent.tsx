@@ -29,13 +29,14 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
     goodsName: data?.goodsName || '',
     quantity: data?.quantity || 0,
     purchaseRate: data?.purchaseRate || 0,
+    amountPaid: data?.amountPaid || 0,
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'quantity' || name === 'purchaseRate' ? parseFloat(value) : value,
+      [name]: ['quantity', 'purchaseRate', 'amountPaid'].includes(name) ? parseFloat(value) : value,
     });
   };
 
@@ -53,7 +54,8 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
           quantity: formData.quantity,
           purchaseRate: formData.purchaseRate,
           totalCost: totalCost,
-          balance: totalCost - (transaction.loadBuy?.amountPaid || 0),
+          amountPaid: formData.amountPaid,
+          balance: totalCost - formData.amountPaid,
         },
         totalAmount: totalCost,
       };
@@ -143,6 +145,21 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
               />
             </div>
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="amountPaid">Amount Paid</Label>
+            <Input 
+              id="amountPaid" 
+              name="amountPaid" 
+              type="number" 
+              value={formData.amountPaid} 
+              onChange={handleInputChange} 
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Total Cost: {formatCurrency(formData.quantity * formData.purchaseRate)} • 
+              Balance: {formatCurrency((formData.quantity * formData.purchaseRate) - formData.amountPaid)}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -219,7 +236,7 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
   );
 };
 
-// TransportationContent with Edit functionality
+// TransportationContent with Edit functionality and Notes
 const TransportationContent = ({ data, transaction, refreshTransaction }: { data: Transaction['transportation'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -231,9 +248,10 @@ const TransportationContent = ({ data, transaction, refreshTransaction }: { data
     origin: data?.origin || '',
     destination: data?.destination || '',
     charges: data?.charges || 0,
+    notes: data?.notes || '',
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -371,6 +389,18 @@ const TransportationContent = ({ data, transaction, refreshTransaction }: { data
               onChange={handleInputChange} 
             />
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="notes">Transportation Notes</Label>
+            <Textarea 
+              id="notes" 
+              name="notes" 
+              value={formData.notes} 
+              onChange={handleInputChange} 
+              placeholder="Add details about the transportation"
+              rows={4}
+            />
+          </div>
         </div>
       </div>
     );
@@ -449,6 +479,15 @@ const TransportationContent = ({ data, transaction, refreshTransaction }: { data
           </div>
         </div>
       </div>
+      
+      {data.notes && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Transportation Notes</h3>
+          <div className="glass p-4 rounded-lg">
+            <p className="whitespace-pre-wrap">{data.notes}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -462,13 +501,14 @@ const LoadSoldContent = ({ data, transaction, refreshTransaction }: { data: Tran
     buyerContact: data?.buyerContact || '',
     quantitySold: data?.quantitySold || 0,
     saleRate: data?.saleRate || 0,
+    amountReceived: data?.amountReceived || 0,
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: ['quantitySold', 'saleRate'].includes(name) ? parseFloat(value) : value,
+      [name]: ['quantitySold', 'saleRate', 'amountReceived'].includes(name) ? parseFloat(value) : value,
     });
   };
 
@@ -481,8 +521,7 @@ const LoadSoldContent = ({ data, transaction, refreshTransaction }: { data: Tran
         loadSold: {
           ...formData,
           totalSaleAmount,
-          amountReceived: data?.amountReceived || 0,
-          pendingBalance: totalSaleAmount - (data?.amountReceived || 0),
+          pendingBalance: totalSaleAmount - formData.amountReceived,
         },
       };
       
@@ -574,6 +613,21 @@ const LoadSoldContent = ({ data, transaction, refreshTransaction }: { data: Tran
                 onChange={handleInputChange} 
               />
             </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="amountReceived">Amount Received</Label>
+            <Input 
+              id="amountReceived" 
+              name="amountReceived" 
+              type="number" 
+              value={formData.amountReceived} 
+              onChange={handleInputChange} 
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Total Sale Amount: {formatCurrency(formData.quantitySold * formData.saleRate)} • 
+              Pending Balance: {formatCurrency((formData.quantitySold * formData.saleRate) - formData.amountReceived)}
+            </p>
           </div>
         </div>
       </div>
@@ -867,7 +921,7 @@ const NotesContent = ({ notes, transaction, refreshTransaction }: { notes: Trans
     try {
       const newNote: Note = {
         id: generateId('note'),
-        text: noteText,
+        content: noteText.trim(),
         date: new Date().toISOString(),
       };
       
@@ -968,7 +1022,7 @@ const NotesContent = ({ notes, transaction, refreshTransaction }: { notes: Trans
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">{new Date(note.date).toLocaleDateString()} {new Date(note.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <p className="whitespace-pre-wrap">{note.text}</p>
+                  <p className="whitespace-pre-wrap">{note.content}</p>
                 </div>
                 <Button 
                   variant="ghost" 
@@ -1020,10 +1074,9 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
       const newAttachment: Attachment = {
         id: generateId('att'),
         name: attachmentName.trim() || file.name,
-        date: new Date().toISOString(),
         type: file.type,
-        size: file.size,
-        url: URL.createObjectURL(file), // This is temporary and only works for the current session
+        uri: URL.createObjectURL(file), // Using this temporarily
+        date: new Date().toISOString(),
       };
       
       const updatedTransaction = { ...transaction };
@@ -1143,7 +1196,7 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>{new Date(attachment.date).toLocaleDateString()}</span>
                       <span>•</span>
-                      <span>{Math.round(attachment.size / 1024)} KB</span>
+                      <span>{attachment.type}</span>
                     </div>
                   </div>
                 </div>
@@ -1153,7 +1206,7 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
                     size="sm"
                     asChild
                   >
-                    <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+                    <a href={attachment.uri} target="_blank" rel="noopener noreferrer">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                         <polyline points="15 3 21 3 21 9"></polyline>

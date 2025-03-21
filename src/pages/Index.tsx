@@ -8,17 +8,29 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import ButtonIcon from '@/components/ui/ButtonIcon';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useNavigate } from 'react-router-dom';
+import { generateId } from '@/lib/utils';
 
 const Index = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [newTransactionName, setNewTransactionName] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadTransactions = async () => {
       try {
         const data = await dbManager.getAllTransactions();
         setTransactions(data);
+        setFilteredTransactions(data);
       } catch (error) {
         console.error('Failed to load transactions:', error);
         toast({
@@ -39,6 +51,7 @@ const Index = () => {
         // Add mock transaction
         const mockTransaction: Transaction = {
           id: 'txn-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+          name: 'Sample Wheat Transaction',
           date: new Date().toISOString(),
           totalAmount: 85000,
           status: 'pending',
@@ -59,7 +72,8 @@ const Index = () => {
             loadedWeight: 15000,
             origin: 'Mumbai',
             destination: 'Pune',
-            charges: 5000
+            charges: 5000,
+            notes: 'Scheduled for delivery on time'
           },
           loadSold: {
             buyerName: 'City Mills',
@@ -110,8 +124,10 @@ const Index = () => {
         
         await dbManager.addTransaction(mockTransaction);
         setTransactions([mockTransaction]);
+        setFilteredTransactions([mockTransaction]);
       } else {
         setTransactions(data);
+        setFilteredTransactions(data);
       }
       
       setLoading(false);
@@ -119,6 +135,22 @@ const Index = () => {
 
     initializeData();
   }, [toast]);
+
+  useEffect(() => {
+    // Filter transactions when searchQuery changes
+    if (searchQuery.trim() === '') {
+      setFilteredTransactions(transactions);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = transactions.filter(transaction => 
+        transaction.name?.toLowerCase().includes(query) ||
+        transaction.id.toLowerCase().includes(query) ||
+        (transaction.loadBuy?.supplierName.toLowerCase().includes(query)) ||
+        (transaction.loadSold?.buyerName.toLowerCase().includes(query))
+      );
+      setFilteredTransactions(filtered);
+    }
+  }, [searchQuery, transactions]);
 
   const handleExport = async () => {
     try {
@@ -152,6 +184,40 @@ const Index = () => {
     }
   };
 
+  const handleCreateTransaction = async () => {
+    try {
+      const name = newTransactionName.trim() || `Transaction ${new Date().toLocaleDateString()}`;
+      const newTransaction: Transaction = {
+        id: 'txn-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5),
+        name: name,
+        date: new Date().toISOString(),
+        totalAmount: 0,
+        status: 'pending',
+        payments: [],
+        notes: [],
+        attachments: [],
+      };
+
+      await dbManager.addTransaction(newTransaction);
+      setIsDialogOpen(false);
+      setNewTransactionName('');
+      
+      toast({
+        title: 'Success',
+        description: 'Transaction created successfully',
+      });
+      
+      navigate(`/transaction/${newTransaction.id}`);
+    } catch (error) {
+      console.error('Failed to create transaction:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create transaction',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -174,16 +240,65 @@ const Index = () => {
       </header>
       
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-xl font-medium">Recent Transactions</h2>
-          <Link to="/new-transaction">
-            <ButtonIcon variant="default" className="rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </ButtonIcon>
-          </Link>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+          <div className="w-full md:w-auto">
+            <h2 className="text-xl font-medium mb-2">Recent Transactions</h2>
+            <div className="w-full md:w-80">
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search transactions..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-8"
+                />
+                <svg
+                  className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <ButtonIcon variant="default" className="rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </ButtonIcon>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Transaction</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="transactionName">Transaction Name</Label>
+                  <Input
+                    id="transactionName"
+                    placeholder="Enter a name for this transaction"
+                    value={newTransactionName}
+                    onChange={(e) => setNewTransactionName(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateTransaction}>Create</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
         
         <AnimatePresence>
@@ -207,35 +322,50 @@ const Index = () => {
                 </svg>
               </div>
             </motion.div>
-          ) : transactions.length === 0 ? (
+          ) : filteredTransactions.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="flex flex-col items-center justify-center h-64 text-center"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-muted-foreground mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-                <line x1="2" y1="10" x2="22" y2="10"></line>
-              </svg>
-              <h3 className="text-lg font-medium mb-2">No Transactions Yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Create your first transaction to get started
-              </p>
-              <Link
-                to="/new-transaction"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              {searchQuery ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-muted-foreground mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <h3 className="text-lg font-medium mb-2">No Results Found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    No transactions match your search criteria
+                  </p>
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-muted-foreground mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                    <line x1="2" y1="10" x2="22" y2="10"></line>
+                  </svg>
+                  <h3 className="text-lg font-medium mb-2">No Transactions Yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create your first transaction to get started
+                  </p>
+                </>
+              )}
+              <Button
+                onClick={() => setIsDialogOpen(true)}
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
                 New Transaction
-              </Link>
+              </Button>
             </motion.div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {transactions.map((transaction, index) => (
+              {filteredTransactions.map((transaction, index) => (
                 <TransactionCard
                   key={transaction.id}
                   transaction={transaction}

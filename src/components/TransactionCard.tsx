@@ -66,7 +66,7 @@ const TransactionCard = ({ transaction, index }: TransactionCardProps) => {
       </div>
       
       <h3 className="text-lg font-medium mb-1">
-        {formatCurrency(transaction.totalAmount)}
+        {transaction.name || `Transaction ${transaction.id.slice(0, 5)}`}
       </h3>
       
       <div className="flex justify-between items-center">
@@ -75,8 +75,9 @@ const TransactionCard = ({ transaction, index }: TransactionCardProps) => {
         </div>
         
         <div className="flex items-center">
+          <span className="text-sm font-medium mr-2">{formatCurrency(transaction.totalAmount)}</span>
           <svg 
-            className="w-4 h-4 text-muted-foreground mr-1" 
+            className="w-4 h-4 text-muted-foreground" 
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24" 
