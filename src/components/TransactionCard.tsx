@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@/lib/utils';
 import { Transaction } from '@/lib/types';
@@ -60,7 +59,7 @@ const TransactionCard = ({ transaction, index }: TransactionCardProps) => {
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-          #{transaction.id.slice(0, 8)}
+          {formattedDate}
         </span>
         <StatusBadge status={transaction.status} />
       </div>
@@ -69,9 +68,25 @@ const TransactionCard = ({ transaction, index }: TransactionCardProps) => {
         {transaction.name || `Transaction ${transaction.id.slice(0, 5)}`}
       </h3>
       
-      <div className="flex justify-between items-center">
+      <div className="grid grid-cols-1 gap-2 mt-3 mb-2">
+        {transaction.loadBuy && (
+          <div className="text-sm">
+            <span className="text-muted-foreground">From: </span>
+            <span className="font-medium">{transaction.loadBuy.supplierName || "N/A"}</span>
+          </div>
+        )}
+        
+        {transaction.loadSold && (
+          <div className="text-sm">
+            <span className="text-muted-foreground">To: </span>
+            <span className="font-medium">{transaction.loadSold.buyerName || "N/A"}</span>
+          </div>
+        )}
+      </div>
+      
+      <div className="flex justify-between items-center mt-2 pt-2 border-t border-border/30">
         <div className="text-sm text-muted-foreground">
-          {formattedDate}
+          {transaction.loadBuy?.goodsName || ""}
         </div>
         
         <div className="flex items-center">

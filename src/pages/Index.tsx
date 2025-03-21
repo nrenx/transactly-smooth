@@ -145,8 +145,9 @@ const Index = () => {
       const filtered = transactions.filter(transaction => 
         transaction.name?.toLowerCase().includes(query) ||
         transaction.id.toLowerCase().includes(query) ||
-        (transaction.loadBuy?.supplierName.toLowerCase().includes(query)) ||
-        (transaction.loadSold?.buyerName.toLowerCase().includes(query))
+        (transaction.loadBuy?.supplierName?.toLowerCase().includes(query)) ||
+        (transaction.loadSold?.buyerName?.toLowerCase().includes(query)) ||
+        (transaction.loadBuy?.goodsName?.toLowerCase().includes(query))
       );
       setFilteredTransactions(filtered);
     }

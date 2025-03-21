@@ -37,7 +37,7 @@ const NewTransaction = () => {
       
       const newTransaction: Transaction = {
         id: generateId('txn'),
-        name: data.name || `Transaction ${generateId('').slice(0, 5)}`, // Adding name field here
+        name: data.name || `Transaction ${generateId('').slice(0, 5)}`,
         date: new Date().toISOString(),
         totalAmount: totalCost,
         status: data.status as 'completed' | 'pending' | 'cancelled',
@@ -63,7 +63,7 @@ const NewTransaction = () => {
         description: "Transaction created successfully.",
       });
       
-      navigate('/');
+      navigate(`/transaction/${newTransaction.id}`);
     } catch (error) {
       console.error('Error creating transaction:', error);
       toast({
