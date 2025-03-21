@@ -8,6 +8,7 @@ import { AnimatePresence } from "framer-motion";
 import Index from "./pages/Index";
 import TransactionDetail from "./pages/TransactionDetail";
 import NotFound from "./pages/NotFound";
+import NewTransaction from "./pages/NewTransaction";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/transaction/:id" element={<TransactionDetail />} />
+            <Route path="/new-transaction" element={<NewTransaction />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AnimatePresence>
