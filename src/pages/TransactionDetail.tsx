@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DetailedView from '@/components/DetailedView';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -16,39 +16,40 @@ const TransactionDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const loadTransaction = async () => {
-      if (!id) {
-        navigate('/');
-        return;
-      }
+  const loadTransaction = useCallback(async () => {
+    if (!id) {
+      navigate('/');
+      return;
+    }
 
-      try {
-        const data = await dbManager.getTransaction(id);
-        if (data) {
-          setTransaction(data);
-        } else {
-          toast({
-            title: 'Error',
-            description: 'Transaction not found',
-            variant: 'destructive',
-          });
-          navigate('/');
-        }
-      } catch (error) {
-        console.error('Failed to load transaction:', error);
+    try {
+      setLoading(true);
+      const data = await dbManager.getTransaction(id);
+      if (data) {
+        setTransaction(data);
+      } else {
         toast({
           title: 'Error',
-          description: 'Failed to load transaction details',
+          description: 'Transaction not found',
           variant: 'destructive',
         });
-      } finally {
-        setLoading(false);
+        navigate('/');
       }
-    };
-
-    loadTransaction();
+    } catch (error) {
+      console.error('Failed to load transaction:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load transaction details',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   }, [id, navigate, toast]);
+
+  useEffect(() => {
+    loadTransaction();
+  }, [loadTransaction]);
 
   return (
     <motion.div
