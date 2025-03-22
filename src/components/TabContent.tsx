@@ -18,10 +18,8 @@ interface TabContentProps {
   activeTab: TabKey;
 }
 
-// LoadBuyContent with Edit functionality
 const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Transaction['loadBuy'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
   const { toast } = useToast();
-  // Initialize isEditing based on whether data exists, but don't set it directly in the render function
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     supplierName: data?.supplierName || '',
@@ -32,7 +30,6 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
     amountPaid: data?.amountPaid || 0,
   });
 
-  // Use useEffect to set isEditing when component mounts or data changes
   useEffect(() => {
     if (!data) {
       setIsEditing(true);
@@ -79,7 +76,6 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
     }
   };
 
-  // If data is undefined and we're editing, show the form
   if (!data && isEditing) {
     return (
       <div className="space-y-6">
@@ -163,7 +159,7 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
       </div>
     );
   }
-  
+
   if (isEditing && data) {
     return (
       <div className="space-y-6">
@@ -249,7 +245,6 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
     );
   }
 
-  // If data doesn't exist and we're not editing, show a button to start editing
   if (!data && !isEditing) {
     return (
       <div className="text-center p-8">
@@ -268,7 +263,6 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
     );
   }
 
-  // Data exists and we're not editing, show the data
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -340,7 +334,6 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
   );
 };
 
-// Apply the same fix to the other content components - use useEffect for setting state based on data existence
 const TransportationContent = ({ data, transaction, refreshTransaction }: { data: Transaction['transportation'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -355,7 +348,6 @@ const TransportationContent = ({ data, transaction, refreshTransaction }: { data
     notes: data?.notes || '',
   });
 
-  // Use useEffect to set isEditing when component mounts or data changes
   useEffect(() => {
     if (!data) {
       setIsEditing(true);
@@ -605,7 +597,6 @@ const TransportationContent = ({ data, transaction, refreshTransaction }: { data
   );
 };
 
-// LoadSoldContent with Edit functionality
 const LoadSoldContent = ({ data, transaction, refreshTransaction }: { data: Transaction['loadSold'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -617,7 +608,6 @@ const LoadSoldContent = ({ data, transaction, refreshTransaction }: { data: Tran
     amountReceived: data?.amountReceived || 0,
   });
 
-  // Use useEffect to set isEditing when component mounts or data changes
   useEffect(() => {
     if (!data) {
       setIsEditing(true);
@@ -823,7 +813,6 @@ const LoadSoldContent = ({ data, transaction, refreshTransaction }: { data: Tran
   );
 };
 
-// PaymentsContent with Add Payment functionality
 const PaymentsContent = ({ payments, transaction, refreshTransaction }: { payments: Transaction['payments'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
   const { toast } = useToast();
   const [isAddingPayment, setIsAddingPayment] = useState(false);
@@ -831,3 +820,619 @@ const PaymentsContent = ({ payments, transaction, refreshTransaction }: { paymen
     amount: "",
     mode: "cash",
     counterparty: "",
+    referenceNumber: "",
+    notes: "",
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const handleSelectChange = (value: string) => {
+    setFormData({
+      ...formData,
+      mode: value,
+    });
+  };
+
+  const handleAddPayment = async () => {
+    try {
+      const newPayment: Payment = {
+        id: generateId(),
+        amount: parseFloat(formData.amount),
+        date: new Date().toISOString(),
+        mode: formData.mode as "cash" | "bank" | "upi" | "other",
+        counterparty: formData.counterparty,
+        referenceNumber: formData.referenceNumber,
+        notes: formData.notes,
+      };
+      
+      const updatedTransaction = {
+        ...transaction,
+        payments: [...(payments || []), newPayment],
+      };
+      
+      await dbManager.updateTransaction(updatedTransaction);
+      await refreshTransaction();
+      setIsAddingPayment(false);
+      setFormData({
+        amount: "",
+        mode: "cash",
+        counterparty: "",
+        referenceNumber: "",
+        notes: "",
+      });
+      
+      toast({
+        title: "Success",
+        description: "Payment added successfully",
+      });
+    } catch (error) {
+      console.error("Error adding payment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add payment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Payment History</h3>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setIsAddingPayment(true)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Payment
+        </Button>
+      </div>
+      
+      {payments && payments.length > 0 ? (
+        <div className="space-y-4">
+          {payments.map((payment) => (
+            <div key={payment.id} className="glass p-4 rounded-lg">
+              <div className="flex justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold">{formatCurrency(payment.amount)}</span>
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    payment.mode === 'cash' ? 'bg-green-100 text-green-800' :
+                    payment.mode === 'bank' ? 'bg-blue-100 text-blue-800' :
+                    payment.mode === 'upi' ? 'bg-purple-100 text-purple-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {payment.mode.toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(payment.date).toLocaleDateString()} • {new Date(payment.date).toLocaleTimeString()}
+                </p>
+              </div>
+              
+              {payment.counterparty && (
+                <p className="text-sm my-1">
+                  <span className="text-muted-foreground">Counterparty:</span> {payment.counterparty}
+                </p>
+              )}
+              
+              {payment.referenceNumber && (
+                <p className="text-sm my-1">
+                  <span className="text-muted-foreground">Reference:</span> {payment.referenceNumber}
+                </p>
+              )}
+              
+              {payment.notes && (
+                <p className="text-sm mt-2 whitespace-pre-wrap">
+                  {payment.notes}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center p-8">
+          <p className="text-muted-foreground mb-4">No payment records available</p>
+        </div>
+      )}
+      
+      <Dialog open={isAddingPayment} onOpenChange={setIsAddingPayment}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Payment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input 
+                id="amount" 
+                name="amount" 
+                type="number" 
+                value={formData.amount} 
+                onChange={handleInputChange} 
+                placeholder="Enter amount"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="mode">Payment Mode</Label>
+              <Select value={formData.mode} onValueChange={handleSelectChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="bank">Bank Transfer</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="counterparty">Counterparty</Label>
+              <Input 
+                id="counterparty" 
+                name="counterparty" 
+                value={formData.counterparty} 
+                onChange={handleInputChange} 
+                placeholder="Enter counterparty name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="referenceNumber">Reference Number</Label>
+              <Input 
+                id="referenceNumber" 
+                name="referenceNumber" 
+                value={formData.referenceNumber} 
+                onChange={handleInputChange} 
+                placeholder="Enter reference number"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea 
+                id="notes" 
+                name="notes" 
+                value={formData.notes} 
+                onChange={handleInputChange}
+                placeholder="Add any additional notes"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingPayment(false)}>Cancel</Button>
+            <Button onClick={handleAddPayment}>Add Payment</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+const NotesContent = ({ notes, transaction, refreshTransaction }: { notes: Transaction['notes'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
+  const { toast } = useToast();
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [noteText, setNoteText] = useState("");
+
+  const handleAddNote = async () => {
+    if (!noteText.trim()) return;
+    
+    try {
+      const newNote: Note = {
+        id: generateId(),
+        text: noteText,
+        date: new Date().toISOString(),
+      };
+      
+      const updatedTransaction = {
+        ...transaction,
+        notes: [...(notes || []), newNote],
+      };
+      
+      await dbManager.updateTransaction(updatedTransaction);
+      await refreshTransaction();
+      setIsAddingNote(false);
+      setNoteText("");
+      
+      toast({
+        title: "Success",
+        description: "Note added successfully",
+      });
+    } catch (error) {
+      console.error("Error adding note:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add note",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Notes</h3>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setIsAddingNote(true)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Note
+        </Button>
+      </div>
+      
+      {notes && notes.length > 0 ? (
+        <div className="space-y-4">
+          {notes.map((note) => (
+            <div key={note.id} className="glass p-4 rounded-lg">
+              <p className="whitespace-pre-wrap">{note.text}</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {new Date(note.date).toLocaleDateString()} • {new Date(note.date).toLocaleTimeString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center p-8">
+          <p className="text-muted-foreground mb-4">No notes available</p>
+        </div>
+      )}
+      
+      <Dialog open={isAddingNote} onOpenChange={setIsAddingNote}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Note</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="noteText">Note</Label>
+              <Textarea 
+                id="noteText" 
+                value={noteText} 
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Enter your note here"
+                rows={6}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingNote(false)}>Cancel</Button>
+            <Button onClick={handleAddNote}>Add Note</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { attachments: Transaction['attachments'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
+  const { toast } = useToast();
+  const [isAddingAttachment, setIsAddingAttachment] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    url: "",
+    type: "image",
+    description: "",
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const handleSelectChange = (value: string) => {
+    setFormData({
+      ...formData,
+      type: value,
+    });
+  };
+
+  const handleAddAttachment = async () => {
+    if (!formData.title.trim() || !formData.url.trim()) return;
+    
+    try {
+      const newAttachment: Attachment = {
+        id: generateId(),
+        title: formData.title,
+        url: formData.url,
+        type: formData.type as "image" | "document" | "invoice" | "other",
+        description: formData.description,
+        date: new Date().toISOString(),
+      };
+      
+      const updatedTransaction = {
+        ...transaction,
+        attachments: [...(attachments || []), newAttachment],
+      };
+      
+      await dbManager.updateTransaction(updatedTransaction);
+      await refreshTransaction();
+      setIsAddingAttachment(false);
+      setFormData({
+        title: "",
+        url: "",
+        type: "image",
+        description: "",
+      });
+      
+      toast({
+        title: "Success",
+        description: "Attachment added successfully",
+      });
+    } catch (error) {
+      console.error("Error adding attachment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add attachment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Attachments</h3>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setIsAddingAttachment(true)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+          </svg>
+          Add Attachment
+        </Button>
+      </div>
+      
+      {attachments && attachments.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {attachments.map((attachment) => (
+            <div key={attachment.id} className="glass p-4 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="rounded-md bg-muted p-2 text-muted-foreground">
+                  {attachment.type === 'image' ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                  ) : attachment.type === 'document' ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                  ) : attachment.type === 'invoice' ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="16" y="4" width="6" height="6"></rect>
+                      <rect x="2" y="14" width="6" height="6"></rect>
+                      <path d="M16 10l-4 4-8-4"></path>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z"></path>
+                      <polyline points="13 2 13 9 20 9"></polyline>
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1 space-y-1 overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium truncate">{attachment.title}</h4>
+                    <span className="text-xs text-muted-foreground">{attachment.type}</span>
+                  </div>
+                  {attachment.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">{attachment.description}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(attachment.date).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border flex justify-end">
+                <a 
+                  href={attachment.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline"
+                >
+                  View Attachment
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center p-8">
+          <p className="text-muted-foreground mb-4">No attachments available</p>
+        </div>
+      )}
+      
+      <Dialog open={isAddingAttachment} onOpenChange={setIsAddingAttachment}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Attachment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input 
+                id="title" 
+                name="title" 
+                value={formData.title} 
+                onChange={handleInputChange} 
+                placeholder="Enter attachment title"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="url">URL</Label>
+              <Input 
+                id="url" 
+                name="url" 
+                value={formData.url} 
+                onChange={handleInputChange} 
+                placeholder="Enter URL of the attachment"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="type">Attachment Type</Label>
+              <Select value={formData.type} onValueChange={handleSelectChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select attachment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="image">Image</SelectItem>
+                  <SelectItem value="document">Document</SelectItem>
+                  <SelectItem value="invoice">Invoice</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea 
+                id="description" 
+                name="description" 
+                value={formData.description} 
+                onChange={handleInputChange}
+                placeholder="Add a brief description"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingAttachment(false)}>Cancel</Button>
+            <Button onClick={handleAddAttachment}>Add Attachment</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+const TabContent: React.FC<TabContentProps> = ({ transaction, activeTab }) => {
+  const navigate = useNavigate();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
+  
+  const refreshTransaction = async () => {
+    try {
+      const refreshedTransaction = await dbManager.getTransactionById(transaction.id);
+    } catch (error) {
+      console.error("Error refreshing transaction:", error);
+    }
+  };
+
+  const handleDeleteTransaction = async () => {
+    try {
+      await dbManager.deleteTransaction(transaction.id);
+      toast({
+        title: "Success",
+        description: "Transaction deleted successfully",
+      });
+      navigate("/");
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete transaction",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "loadBuy":
+        return <LoadBuyContent data={transaction.loadBuy} transaction={transaction} refreshTransaction={refreshTransaction} />;
+      case "transportation":
+        return <TransportationContent data={transaction.transportation} transaction={transaction} refreshTransaction={refreshTransaction} />;
+      case "loadSold":
+        return <LoadSoldContent data={transaction.loadSold} transaction={transaction} refreshTransaction={refreshTransaction} />;
+      case "payments":
+        return <PaymentsContent payments={transaction.payments} transaction={transaction} refreshTransaction={refreshTransaction} />;
+      case "notes":
+        return <NotesContent notes={transaction.notes} transaction={transaction} refreshTransaction={refreshTransaction} />;
+      case "attachments":
+        return <AttachmentsContent attachments={transaction.attachments} transaction={transaction} refreshTransaction={refreshTransaction} />;
+      default:
+        return <div>Select a tab to view details</div>;
+    }
+  };
+
+  return (
+    <div className="relative">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+          className="p-6"
+        >
+          {renderTabContent()}
+        </motion.div>
+      </AnimatePresence>
+
+      {activeTab === "loadBuy" && (
+        <div className="mt-8 pt-6 border-t border-border">
+          <Dialog open={isDeleting} onOpenChange={setIsDeleting}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+                Delete Transaction
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete Transaction</DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                <p>Are you sure you want to delete this transaction? This action cannot be undone.</p>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button variant="destructive" onClick={handleDeleteTransaction}>Delete</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TabContent;
