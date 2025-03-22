@@ -1,37 +1,15 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Transaction } from '@/lib/types';
 import { dbManager } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
-import { exportTransactions, ExportFormat } from '@/lib/exportUtils';
-import { FilterCriteria, FilterOption } from '@/components/index/AdvancedSearchFilters';
 
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<FilterCriteria>({
-    status: [],
-    goodsName: [],
-    amountRange: { min: null, max: null },
-    dateRange: { start: null, end: null }
-  });
   const { toast } = useToast();
-
-  // Extract unique goods names from transactions for filter options
-  const goodsOptions = useMemo<FilterOption[]>(() => {
-    const uniqueGoods = new Set<string>();
-    transactions.forEach(transaction => {
-      if (transaction.loadBuy?.goodsName) {
-        uniqueGoods.add(transaction.loadBuy.goodsName);
-      }
-    });
-    return Array.from(uniqueGoods).map(name => ({
-      value: name,
-      label: name
-    }));
-  }, [transactions]);
 
   const loadTransactions = async () => {
     try {
@@ -115,8 +93,10 @@ export const useTransactions = () => {
         
         await dbManager.addTransaction(mockTransaction);
         setTransactions([mockTransaction]);
+        setFilteredTransactions([mockTransaction]);
       } else {
         setTransactions(data);
+        setFilteredTransactions(data);
       }
     } catch (error) {
       console.error('Failed to load transactions:', error);
@@ -130,14 +110,27 @@ export const useTransactions = () => {
     }
   };
 
-  const exportData = async (format: ExportFormat = 'json') => {
+  const exportData = async () => {
     try {
-      // Use the currently filtered transactions for export
-      await exportTransactions(filteredTransactions, format);
+      const jsonData = await dbManager.exportData();
+      
+      // Create a blob and download it
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `transactly-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
       
       toast({
         title: 'Export Successful',
-        description: `Transaction data has been exported as ${format.toUpperCase()}`,
+        description: 'Transaction data has been exported successfully',
       });
     } catch (error) {
       console.error('Export failed:', error);
@@ -149,75 +142,22 @@ export const useTransactions = () => {
     }
   };
 
-  // Apply the text search and filters together
+  // Filter transactions when searchQuery changes
   useEffect(() => {
-    let filtered = [...transactions];
-    
-    // Apply text search
-    if (searchQuery.trim() !== '') {
+    if (searchQuery.trim() === '') {
+      setFilteredTransactions(transactions);
+    } else {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(transaction => 
+      const filtered = transactions.filter(transaction => 
         transaction.name?.toLowerCase().includes(query) ||
         transaction.id.toLowerCase().includes(query) ||
         (transaction.loadBuy?.supplierName?.toLowerCase().includes(query)) ||
         (transaction.loadSold?.buyerName?.toLowerCase().includes(query)) ||
         (transaction.loadBuy?.goodsName?.toLowerCase().includes(query))
       );
+      setFilteredTransactions(filtered);
     }
-    
-    // Apply status filter
-    if (filters.status && filters.status.length > 0) {
-      filtered = filtered.filter(transaction => 
-        filters.status!.includes(transaction.status || 'pending')
-      );
-    }
-    
-    // Apply goods name filter
-    if (filters.goodsName && filters.goodsName.length > 0) {
-      filtered = filtered.filter(transaction => 
-        transaction.loadBuy?.goodsName && 
-        filters.goodsName!.includes(transaction.loadBuy.goodsName)
-      );
-    }
-    
-    // Apply amount range filter
-    if (filters.amountRange) {
-      if (filters.amountRange.min !== null) {
-        filtered = filtered.filter(transaction => 
-          (transaction.totalAmount || 0) >= (filters.amountRange!.min || 0)
-        );
-      }
-      if (filters.amountRange.max !== null) {
-        filtered = filtered.filter(transaction => 
-          (transaction.totalAmount || 0) <= (filters.amountRange!.max || Infinity)
-        );
-      }
-    }
-    
-    // Apply date range filter
-    if (filters.dateRange) {
-      if (filters.dateRange.start) {
-        const startDate = new Date(filters.dateRange.start);
-        startDate.setHours(0, 0, 0, 0);
-        filtered = filtered.filter(transaction => {
-          if (!transaction.date) return false;
-          const transactionDate = new Date(transaction.date);
-          return transactionDate >= startDate;
-        });
-      }
-      if (filters.dateRange.end) {
-        const endDate = new Date(filters.dateRange.end);
-        endDate.setHours(23, 59, 59, 999);
-        filtered = filtered.filter(transaction => {
-          if (!transaction.date) return false;
-          const transactionDate = new Date(transaction.date);
-          return transactionDate <= endDate;
-        });
-      }
-    }
-    
-    setFilteredTransactions(filtered);
-  }, [searchQuery, transactions, filters]);
+  }, [searchQuery, transactions]);
 
   // Load transactions on component mount
   useEffect(() => {
@@ -231,8 +171,6 @@ export const useTransactions = () => {
     searchQuery,
     setSearchQuery,
     exportData,
-    loadTransactions,
-    goodsOptions,
-    setFilters
+    loadTransactions
   };
 };
