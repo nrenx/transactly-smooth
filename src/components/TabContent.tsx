@@ -16,6 +16,7 @@ import * as React from 'react';
 interface TabContentProps {
   transaction: Transaction;
   activeTab: TabKey;
+  refreshTransaction: () => Promise<void>;
 }
 
 const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Transaction['loadBuy'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
@@ -820,7 +821,6 @@ const PaymentsContent = ({ payments, transaction, refreshTransaction }: { paymen
     amount: "",
     mode: "cash",
     counterparty: "",
-    referenceNumber: "",
     notes: "",
   });
 
@@ -845,9 +845,9 @@ const PaymentsContent = ({ payments, transaction, refreshTransaction }: { paymen
         id: generateId(),
         amount: parseFloat(formData.amount),
         date: new Date().toISOString(),
-        mode: formData.mode as "cash" | "bank" | "upi" | "other",
+        mode: formData.mode as "cash" | "cheque" | "upi" | "bank",
         counterparty: formData.counterparty,
-        referenceNumber: formData.referenceNumber,
+        isIncoming: false,
         notes: formData.notes,
       };
       
@@ -863,7 +863,6 @@ const PaymentsContent = ({ payments, transaction, refreshTransaction }: { paymen
         amount: "",
         mode: "cash",
         counterparty: "",
-        referenceNumber: "",
         notes: "",
       });
       
@@ -925,12 +924,6 @@ const PaymentsContent = ({ payments, transaction, refreshTransaction }: { paymen
                 </p>
               )}
               
-              {payment.referenceNumber && (
-                <p className="text-sm my-1">
-                  <span className="text-muted-foreground">Reference:</span> {payment.referenceNumber}
-                </p>
-              )}
-              
               {payment.notes && (
                 <p className="text-sm mt-2 whitespace-pre-wrap">
                   {payment.notes}
@@ -973,7 +966,7 @@ const PaymentsContent = ({ payments, transaction, refreshTransaction }: { paymen
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="bank">Bank Transfer</SelectItem>
                   <SelectItem value="upi">UPI</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="cheque">Cheque</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -986,17 +979,6 @@ const PaymentsContent = ({ payments, transaction, refreshTransaction }: { paymen
                 value={formData.counterparty} 
                 onChange={handleInputChange} 
                 placeholder="Enter counterparty name"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="referenceNumber">Reference Number</Label>
-              <Input 
-                id="referenceNumber" 
-                name="referenceNumber" 
-                value={formData.referenceNumber} 
-                onChange={handleInputChange} 
-                placeholder="Enter reference number"
               />
             </div>
             
@@ -1025,15 +1007,15 @@ const PaymentsContent = ({ payments, transaction, refreshTransaction }: { paymen
 const NotesContent = ({ notes, transaction, refreshTransaction }: { notes: Transaction['notes'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
   const { toast } = useToast();
   const [isAddingNote, setIsAddingNote] = useState(false);
-  const [noteText, setNoteText] = useState("");
+  const [noteContent, setNoteContent] = useState("");
 
   const handleAddNote = async () => {
-    if (!noteText.trim()) return;
+    if (!noteContent.trim()) return;
     
     try {
       const newNote: Note = {
         id: generateId(),
-        text: noteText,
+        content: noteContent,
         date: new Date().toISOString(),
       };
       
@@ -1045,7 +1027,7 @@ const NotesContent = ({ notes, transaction, refreshTransaction }: { notes: Trans
       await dbManager.updateTransaction(updatedTransaction);
       await refreshTransaction();
       setIsAddingNote(false);
-      setNoteText("");
+      setNoteContent("");
       
       toast({
         title: "Success",
@@ -1082,7 +1064,7 @@ const NotesContent = ({ notes, transaction, refreshTransaction }: { notes: Trans
         <div className="space-y-4">
           {notes.map((note) => (
             <div key={note.id} className="glass p-4 rounded-lg">
-              <p className="whitespace-pre-wrap">{note.text}</p>
+              <p className="whitespace-pre-wrap">{note.content}</p>
               <p className="text-sm text-muted-foreground mt-2">
                 {new Date(note.date).toLocaleDateString()} • {new Date(note.date).toLocaleTimeString()}
               </p>
@@ -1102,11 +1084,11 @@ const NotesContent = ({ notes, transaction, refreshTransaction }: { notes: Trans
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="noteText">Note</Label>
+              <Label htmlFor="noteContent">Note</Label>
               <Textarea 
-                id="noteText" 
-                value={noteText} 
-                onChange={(e) => setNoteText(e.target.value)}
+                id="noteContent" 
+                value={noteContent} 
+                onChange={(e) => setNoteContent(e.target.value)}
                 placeholder="Enter your note here"
                 rows={6}
               />
@@ -1126,10 +1108,9 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
   const { toast } = useToast();
   const [isAddingAttachment, setIsAddingAttachment] = useState(false);
   const [formData, setFormData] = useState({
-    title: "",
-    url: "",
+    name: "",
+    uri: "",
     type: "image",
-    description: "",
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -1148,15 +1129,14 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
   };
 
   const handleAddAttachment = async () => {
-    if (!formData.title.trim() || !formData.url.trim()) return;
+    if (!formData.name.trim() || !formData.uri.trim()) return;
     
     try {
       const newAttachment: Attachment = {
         id: generateId(),
-        title: formData.title,
-        url: formData.url,
-        type: formData.type as "image" | "document" | "invoice" | "other",
-        description: formData.description,
+        name: formData.name,
+        uri: formData.uri,
+        type: formData.type,
         date: new Date().toISOString(),
       };
       
@@ -1169,10 +1149,9 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
       await refreshTransaction();
       setIsAddingAttachment(false);
       setFormData({
-        title: "",
-        url: "",
+        name: "",
+        uri: "",
         type: "image",
-        description: "",
       });
       
       toast({
@@ -1225,12 +1204,6 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
                       <line x1="16" y1="17" x2="8" y2="17"></line>
                       <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
-                  ) : attachment.type === 'invoice' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="16" y="4" width="6" height="6"></rect>
-                      <rect x="2" y="14" width="6" height="6"></rect>
-                      <path d="M16 10l-4 4-8-4"></path>
-                    </svg>
                   ) : (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z"></path>
@@ -1240,12 +1213,9 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
                 </div>
                 <div className="flex-1 space-y-1 overflow-hidden">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium truncate">{attachment.title}</h4>
+                    <h4 className="font-medium truncate">{attachment.name}</h4>
                     <span className="text-xs text-muted-foreground">{attachment.type}</span>
                   </div>
-                  {attachment.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">{attachment.description}</p>
-                  )}
                   <p className="text-xs text-muted-foreground">
                     {new Date(attachment.date).toLocaleDateString()}
                   </p>
@@ -1253,7 +1223,7 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
               </div>
               <div className="mt-3 pt-3 border-t border-border flex justify-end">
                 <a 
-                  href={attachment.url} 
+                  href={attachment.uri} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-sm text-primary hover:underline"
@@ -1277,22 +1247,22 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="name">Title</Label>
               <Input 
-                id="title" 
-                name="title" 
-                value={formData.title} 
+                id="name" 
+                name="name" 
+                value={formData.name} 
                 onChange={handleInputChange} 
                 placeholder="Enter attachment title"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="url">URL</Label>
+              <Label htmlFor="uri">URL</Label>
               <Input 
-                id="url" 
-                name="url" 
-                value={formData.url} 
+                id="uri" 
+                name="uri" 
+                value={formData.uri} 
                 onChange={handleInputChange} 
                 placeholder="Enter URL of the attachment"
               />
@@ -1308,21 +1278,8 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
                   <SelectItem value="image">Image</SelectItem>
                   <SelectItem value="document">Document</SelectItem>
                   <SelectItem value="invoice">Invoice</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea 
-                id="description" 
-                name="description" 
-                value={formData.description} 
-                onChange={handleInputChange}
-                placeholder="Add a brief description"
-                rows={3}
-              />
             </div>
           </div>
           <DialogFooter>
@@ -1335,18 +1292,10 @@ const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { 
   );
 };
 
-const TabContent: React.FC<TabContentProps> = ({ transaction, activeTab }) => {
+const TabContent: React.FC<TabContentProps> = ({ transaction, activeTab, refreshTransaction }) => {
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
-  
-  const refreshTransaction = async () => {
-    try {
-      const refreshedTransaction = await dbManager.getTransactionById(transaction.id);
-    } catch (error) {
-      console.error("Error refreshing transaction:", error);
-    }
-  };
 
   const handleDeleteTransaction = async () => {
     try {
