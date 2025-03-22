@@ -8,6 +8,7 @@ import { dbManager } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import ButtonIcon from '@/components/ui/ButtonIcon';
+import { Button } from '@/components/ui/button';
 
 const TransactionDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,7 +27,17 @@ const TransactionDetail = () => {
       setLoading(true);
       const data = await dbManager.getTransaction(id);
       if (data) {
-        setTransaction(data);
+        // Ensure all required transaction properties exist
+        const updatedTransaction = {
+          ...data,
+          loadBuy: data.loadBuy || undefined,
+          transportation: data.transportation || undefined,
+          loadSold: data.loadSold || undefined,
+          payments: data.payments || [],
+          notes: data.notes || [],
+          attachments: data.attachments || [],
+        };
+        setTransaction(updatedTransaction);
       } else {
         toast({
           title: 'Error',
@@ -105,12 +116,12 @@ const TransactionDetail = () => {
             <p className="text-muted-foreground mb-4">
               The transaction you're looking for doesn't exist or has been deleted.
             </p>
-            <button
+            <Button
               onClick={() => navigate('/')}
               className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Return to Dashboard
-            </button>
+            </Button>
           </div>
         )}
       </main>

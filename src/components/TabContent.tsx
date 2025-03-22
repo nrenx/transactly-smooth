@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Transaction, TabKey, Payment, Note, Attachment } from '@/lib/types';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -47,14 +46,8 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
       const updatedTransaction = {
         ...transaction,
         loadBuy: {
-          ...transaction.loadBuy,
-          supplierName: formData.supplierName,
-          supplierContact: formData.supplierContact,
-          goodsName: formData.goodsName,
-          quantity: formData.quantity,
-          purchaseRate: formData.purchaseRate,
+          ...formData,
           totalCost: totalCost,
-          amountPaid: formData.amountPaid,
           balance: totalCost - formData.amountPaid,
         },
         totalAmount: totalCost,
@@ -78,7 +71,91 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
     }
   };
 
-  if (!data) return <div className="text-muted-foreground">No purchase data available</div>;
+  // Always show the edit form for undefined data
+  if (!data) {
+    setIsEditing(true);
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">Add Load Buy Details</h3>
+          <div className="flex space-x-2">
+            <Button onClick={handleSave}>Save Details</Button>
+          </div>
+        </div>
+        
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="supplierName">Supplier Name</Label>
+              <Input 
+                id="supplierName" 
+                name="supplierName" 
+                value={formData.supplierName} 
+                onChange={handleInputChange} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="supplierContact">Contact Number</Label>
+              <Input 
+                id="supplierContact" 
+                name="supplierContact" 
+                value={formData.supplierContact} 
+                onChange={handleInputChange} 
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="goodsName">Goods Type</Label>
+            <Input 
+              id="goodsName" 
+              name="goodsName" 
+              value={formData.goodsName} 
+              onChange={handleInputChange} 
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Quantity</Label>
+              <Input 
+                id="quantity" 
+                name="quantity" 
+                type="number" 
+                value={formData.quantity} 
+                onChange={handleInputChange} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="purchaseRate">Purchase Rate</Label>
+              <Input 
+                id="purchaseRate" 
+                name="purchaseRate" 
+                type="number" 
+                value={formData.purchaseRate} 
+                onChange={handleInputChange} 
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="amountPaid">Amount Paid</Label>
+            <Input 
+              id="amountPaid" 
+              name="amountPaid" 
+              type="number" 
+              value={formData.amountPaid} 
+              onChange={handleInputChange} 
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Total Cost: {formatCurrency(formData.quantity * formData.purchaseRate)} • 
+              Balance: {formatCurrency((formData.quantity * formData.purchaseRate) - formData.amountPaid)}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   if (isEditing) {
     return (
@@ -239,7 +316,7 @@ const LoadBuyContent = ({ data, transaction, refreshTransaction }: { data: Trans
 // TransportationContent with Edit functionality and Notes
 const TransportationContent = ({ data, transaction, refreshTransaction }: { data: Transaction['transportation'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
   const { toast } = useToast();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(!data);
   const [formData, setFormData] = useState({
     vehicleType: data?.vehicleType || '',
     vehicleNumber: data?.vehicleNumber || '',
@@ -286,29 +363,13 @@ const TransportationContent = ({ data, transaction, refreshTransaction }: { data
     }
   };
 
-  if (!data) return (
-    <div className="text-center p-8">
-      <p className="text-muted-foreground mb-4">No transportation data available</p>
-      <Button 
-        onClick={() => setIsEditing(true)}
-        variant="outline"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 20h9"></path>
-          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-        </svg>
-        Add Transportation Details
-      </Button>
-    </div>
-  );
-  
   if (isEditing) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Edit Transportation Details</h3>
+          <h3 className="text-lg font-medium">{data ? "Edit Transportation Details" : "Add Transportation Details"}</h3>
           <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+            {data && <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>}
             <Button onClick={handleSave}>Save Changes</Button>
           </div>
         </div>
@@ -406,6 +467,24 @@ const TransportationContent = ({ data, transaction, refreshTransaction }: { data
     );
   }
 
+  if (!data) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-muted-foreground mb-4">No transportation data available</p>
+        <Button 
+          onClick={() => setIsEditing(true)}
+          variant="outline"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          Add Transportation Details
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -495,7 +574,7 @@ const TransportationContent = ({ data, transaction, refreshTransaction }: { data
 // LoadSoldContent with Edit functionality
 const LoadSoldContent = ({ data, transaction, refreshTransaction }: { data: Transaction['loadSold'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
   const { toast } = useToast();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(!data);
   const [formData, setFormData] = useState({
     buyerName: data?.buyerName || '',
     buyerContact: data?.buyerContact || '',
@@ -543,29 +622,13 @@ const LoadSoldContent = ({ data, transaction, refreshTransaction }: { data: Tran
     }
   };
 
-  if (!data) return (
-    <div className="text-center p-8">
-      <p className="text-muted-foreground mb-4">No sales data available</p>
-      <Button 
-        onClick={() => setIsEditing(true)}
-        variant="outline"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 20h9"></path>
-          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-        </svg>
-        Add Sales Details
-      </Button>
-    </div>
-  );
-  
   if (isEditing) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Edit Sales Details</h3>
+          <h3 className="text-lg font-medium">{data ? "Edit Sales Details" : "Add Sales Details"}</h3>
           <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+            {data && <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>}
             <Button onClick={handleSave}>Save Changes</Button>
           </div>
         </div>
@@ -630,6 +693,24 @@ const LoadSoldContent = ({ data, transaction, refreshTransaction }: { data: Tran
             </p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-muted-foreground mb-4">No sales data available</p>
+        <Button 
+          onClick={() => setIsEditing(true)}
+          variant="outline"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          Add Sales Details
+        </Button>
       </div>
     );
   }
@@ -753,575 +834,3 @@ const PaymentsContent = ({ payments, transaction, refreshTransaction }: { paymen
         updatedTransaction.loadSold.amountReceived = (updatedTransaction.loadSold.amountReceived || 0) + parseFloat(formData.amount);
         updatedTransaction.loadSold.pendingBalance = updatedTransaction.loadSold.totalSaleAmount - updatedTransaction.loadSold.amountReceived;
       }
-
-      await dbManager.updateTransaction(updatedTransaction);
-      await refreshTransaction();
-      setIsAddingPayment(false);
-      setFormData({
-        amount: "",
-        mode: "cash",
-        counterparty: "",
-        isIncoming: false,
-        notes: "",
-      });
-
-      toast({
-        title: "Success",
-        description: "Payment added successfully",
-      });
-    } catch (error) {
-      console.error("Error adding payment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add payment",
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (isAddingPayment) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Add New Payment</h3>
-          <Button variant="outline" onClick={() => setIsAddingPayment(false)}>Cancel</Button>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
-              <Input 
-                id="amount" 
-                name="amount" 
-                type="number" 
-                value={formData.amount} 
-                onChange={handleInputChange} 
-                placeholder="Enter amount"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="mode">Payment Mode</Label>
-              <Select 
-                value={formData.mode} 
-                onValueChange={(value) => handleSelectChange("mode", value)}
-              >
-                <SelectTrigger id="mode">
-                  <SelectValue placeholder="Select mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="cheque">Cheque</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
-                  <SelectItem value="bank">Bank Transfer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="counterparty">Counterparty</Label>
-            <Input 
-              id="counterparty" 
-              name="counterparty" 
-              value={formData.counterparty} 
-              onChange={handleInputChange} 
-              placeholder="Enter person/company name"
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="isIncoming"
-              checked={formData.isIncoming}
-              onChange={handleCheckboxChange}
-              className="form-checkbox h-4 w-4 text-primary rounded border-gray-300 focus:ring-2 focus:ring-primary"
-            />
-            <Label htmlFor="isIncoming" className="cursor-pointer">This is an incoming payment (money received)</Label>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
-            <Textarea 
-              id="notes" 
-              name="notes" 
-              value={formData.notes} 
-              onChange={handleInputChange} 
-              placeholder="Additional details about this payment"
-            />
-          </div>
-          
-          <Button onClick={handleAddPayment} className="w-full">Add Payment</Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Payment Records</h3>
-        <Button 
-          onClick={() => setIsAddingPayment(true)}
-          size="sm"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Add Payment
-        </Button>
-      </div>
-      
-      <div className="space-y-4">
-        {(!payments || payments.length === 0) ? (
-          <div className="text-muted-foreground">No payment records available</div>
-        ) : (
-          payments.map((payment) => (
-            <div key={payment.id} className="glass p-4 rounded-lg">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-xs rounded ${payment.isIncoming ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {payment.isIncoming ? 'Received' : 'Paid'}
-                    </span>
-                    <span className="text-sm text-muted-foreground">{new Date(payment.date).toLocaleDateString()}</span>
-                  </div>
-                  <p className="font-medium mt-1">{formatCurrency(payment.amount)}</p>
-                  <p className="text-sm">{payment.counterparty}</p>
-                </div>
-                <div className="text-right">
-                  <span className="px-2 py-1 text-xs bg-gray-100 rounded text-gray-800 capitalize">
-                    {payment.mode}
-                  </span>
-                  {payment.notes && (
-                    <p className="text-xs text-muted-foreground mt-1">{payment.notes}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Notes Content component
-const NotesContent = ({ notes, transaction, refreshTransaction }: { notes: Transaction['notes'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
-  const { toast } = useToast();
-  const [isAddingNote, setIsAddingNote] = useState(false);
-  const [noteText, setNoteText] = useState("");
-
-  const handleAddNote = async () => {
-    if (!noteText.trim()) return;
-    
-    try {
-      const newNote: Note = {
-        id: generateId('note'),
-        content: noteText.trim(),
-        date: new Date().toISOString(),
-      };
-      
-      const updatedTransaction = { ...transaction };
-      updatedTransaction.notes = [...(updatedTransaction.notes || []), newNote];
-      
-      await dbManager.updateTransaction(updatedTransaction);
-      await refreshTransaction();
-      setIsAddingNote(false);
-      setNoteText("");
-      
-      toast({
-        title: "Success",
-        description: "Note added successfully",
-      });
-    } catch (error) {
-      console.error("Error adding note:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add note",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteNote = async (noteId: string) => {
-    try {
-      const updatedTransaction = { ...transaction };
-      updatedTransaction.notes = updatedTransaction.notes?.filter(note => note.id !== noteId) || [];
-      
-      await dbManager.updateTransaction(updatedTransaction);
-      await refreshTransaction();
-      
-      toast({
-        title: "Success",
-        description: "Note deleted successfully",
-      });
-    } catch (error) {
-      console.error("Error deleting note:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete note",
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (isAddingNote) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Add New Note</h3>
-          <Button variant="outline" onClick={() => setIsAddingNote(false)}>Cancel</Button>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="noteText">Note</Label>
-            <Textarea 
-              id="noteText" 
-              value={noteText} 
-              onChange={(e) => setNoteText(e.target.value)} 
-              placeholder="Enter your note here"
-              rows={4}
-            />
-          </div>
-          
-          <Button onClick={handleAddNote} className="w-full">Add Note</Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Notes</h3>
-        <Button 
-          onClick={() => setIsAddingNote(true)}
-          size="sm"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Add Note
-        </Button>
-      </div>
-      
-      <div className="space-y-4">
-        {(!notes || notes.length === 0) ? (
-          <div className="text-muted-foreground">No notes available</div>
-        ) : (
-          notes.map((note) => (
-            <div key={note.id} className="glass p-4 rounded-lg">
-              <div className="flex justify-between items-start">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">{new Date(note.date).toLocaleDateString()} {new Date(note.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-                  <p className="whitespace-pre-wrap">{note.content}</p>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleDeleteNote(note.id)}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                  </svg>
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Attachments Content component
-const AttachmentsContent = ({ attachments, transaction, refreshTransaction }: { attachments: Transaction['attachments'], transaction: Transaction, refreshTransaction: () => Promise<void> }) => {
-  const { toast } = useToast();
-  const [isUploading, setIsUploading] = useState(false);
-  const [attachmentName, setAttachmentName] = useState("");
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const handleUpload = async () => {
-    if (!fileInputRef.current?.files?.length) {
-      toast({
-        title: "Error",
-        description: "Please select a file to upload",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const file = fileInputRef.current.files[0];
-    if (!attachmentName.trim()) {
-      setAttachmentName(file.name);
-    }
-    
-    try {
-      // In a real app, you would upload the file to a server here
-      // For this demo, we'll just create the attachment object
-      const newAttachment: Attachment = {
-        id: generateId('att'),
-        name: attachmentName.trim() || file.name,
-        type: file.type,
-        uri: URL.createObjectURL(file), // Using this temporarily
-        date: new Date().toISOString(),
-      };
-      
-      const updatedTransaction = { ...transaction };
-      updatedTransaction.attachments = [...(updatedTransaction.attachments || []), newAttachment];
-      
-      await dbManager.updateTransaction(updatedTransaction);
-      await refreshTransaction();
-      setIsUploading(false);
-      setAttachmentName("");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      
-      toast({
-        title: "Success",
-        description: "Attachment added successfully",
-      });
-    } catch (error) {
-      console.error("Error adding attachment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add attachment",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteAttachment = async (attachmentId: string) => {
-    try {
-      const updatedTransaction = { ...transaction };
-      updatedTransaction.attachments = updatedTransaction.attachments?.filter(att => att.id !== attachmentId) || [];
-      
-      await dbManager.updateTransaction(updatedTransaction);
-      await refreshTransaction();
-      
-      toast({
-        title: "Success",
-        description: "Attachment deleted successfully",
-      });
-    } catch (error) {
-      console.error("Error deleting attachment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete attachment",
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (isUploading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Upload Attachment</h3>
-          <Button variant="outline" onClick={() => setIsUploading(false)}>Cancel</Button>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="attachmentName">Name (Optional)</Label>
-            <Input 
-              id="attachmentName" 
-              value={attachmentName} 
-              onChange={(e) => setAttachmentName(e.target.value)} 
-              placeholder="Enter a name for this attachment"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="fileInput">File</Label>
-            <Input 
-              id="fileInput" 
-              type="file" 
-              ref={fileInputRef}
-            />
-          </div>
-          
-          <Button onClick={handleUpload} className="w-full">Upload Attachment</Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Attachments</h3>
-        <Button 
-          onClick={() => setIsUploading(true)}
-          size="sm"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          Upload
-        </Button>
-      </div>
-      
-      <div className="space-y-4">
-        {(!attachments || attachments.length === 0) ? (
-          <div className="text-muted-foreground">No attachments available</div>
-        ) : (
-          attachments.map((attachment) => (
-            <div key={attachment.id} className="glass p-4 rounded-lg">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 p-2 rounded">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                      <polyline points="13 2 13 9 20 9"></polyline>
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="font-medium">{attachment.name}</p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{new Date(attachment.date).toLocaleDateString()}</span>
-                      <span>•</span>
-                      <span>{attachment.type}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost"
-                    size="sm"
-                    asChild
-                  >
-                    <a href={attachment.uri} target="_blank" rel="noopener noreferrer">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                      </svg>
-                    </a>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleDeleteAttachment(attachment.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      <line x1="10" y1="11" x2="10" y2="17"></line>
-                      <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-};
-
-const TabContent: React.FC<TabContentProps> = ({ transaction, activeTab }) => {
-  const navigate = useNavigate();
-  const [currentTransaction, setCurrentTransaction] = useState<Transaction>(transaction);
-  
-  const refreshTransaction = async () => {
-    try {
-      const updatedTransaction = await dbManager.getTransaction(transaction.id);
-      if (updatedTransaction) {
-        setCurrentTransaction(updatedTransaction);
-      }
-    } catch (error) {
-      console.error("Failed to refresh transaction:", error);
-    }
-  };
-  
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'loadBuy':
-        return (
-          <LoadBuyContent 
-            data={currentTransaction.loadBuy} 
-            transaction={currentTransaction}
-            refreshTransaction={refreshTransaction}
-          />
-        );
-      case 'transportation':
-        return (
-          <TransportationContent 
-            data={currentTransaction.transportation} 
-            transaction={currentTransaction}
-            refreshTransaction={refreshTransaction}
-          />
-        );
-      case 'loadSold':
-        return (
-          <LoadSoldContent 
-            data={currentTransaction.loadSold} 
-            transaction={currentTransaction}
-            refreshTransaction={refreshTransaction}
-          />
-        );
-      case 'payments':
-        return (
-          <PaymentsContent 
-            payments={currentTransaction.payments} 
-            transaction={currentTransaction}
-            refreshTransaction={refreshTransaction}
-          />
-        );
-      case 'notes':
-        return (
-          <NotesContent 
-            notes={currentTransaction.notes} 
-            transaction={currentTransaction}
-            refreshTransaction={refreshTransaction}
-          />
-        );
-      case 'attachments':
-        return (
-          <AttachmentsContent 
-            attachments={currentTransaction.attachments} 
-            transaction={currentTransaction}
-            refreshTransaction={refreshTransaction}
-          />
-        );
-      default:
-        return <div>Select a tab to view details</div>;
-    }
-  };
-
-  return (
-    <div className="py-4">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.2 }}
-        >
-          {renderTabContent()}
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
-};
-
-export default TabContent;
