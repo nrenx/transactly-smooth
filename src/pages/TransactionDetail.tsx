@@ -27,7 +27,7 @@ const TransactionDetail = () => {
       setLoading(true);
       const data = await dbManager.getTransaction(id);
       if (data) {
-        // Ensure all required transaction properties exist
+        // Initialize all required transaction properties to prevent blank screens
         const updatedTransaction = {
           ...data,
           loadBuy: data.loadBuy || undefined,

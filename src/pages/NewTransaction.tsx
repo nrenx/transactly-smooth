@@ -32,16 +32,18 @@ const NewTransaction = () => {
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
     try {
-      const purchaseRate = parseFloat(data.purchaseRate);
-      const quantity = parseFloat(data.quantity);
+      const purchaseRate = parseFloat(data.purchaseRate) || 0;
+      const quantity = parseFloat(data.quantity) || 0;
       const totalCost = purchaseRate * quantity;
       
+      // Create a fully initialized transaction object to prevent blank screens
       const newTransaction: Transaction = {
         id: generateId('txn'),
         name: data.name || `Transaction ${generateId('').slice(0, 5)}`,
         date: new Date().toISOString(),
         totalAmount: totalCost,
         status: data.status as 'completed' | 'pending' | 'cancelled',
+        // Initialize loadBuy with all required properties
         loadBuy: {
           supplierName: data.supplierName,
           supplierContact: data.supplierContact,
@@ -52,6 +54,7 @@ const NewTransaction = () => {
           amountPaid: 0,
           balance: totalCost,
         },
+        // Initialize empty arrays for collections
         payments: [],
         notes: [],
         attachments: [],
