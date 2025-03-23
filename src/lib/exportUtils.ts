@@ -131,6 +131,7 @@ const exportAsPDF = (transactions: Transaction[]): Promise<void> => {
       ]);
       
       // Add table
+      // @ts-ignore - doc.autoTable is added by the jspdf-autotable import
       doc.autoTable({
         head: [['ID', 'Name', 'Date', 'Amount', 'Status', 'Goods']],
         body: tableData,
