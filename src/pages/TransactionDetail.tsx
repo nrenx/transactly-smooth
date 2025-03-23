@@ -58,6 +58,11 @@ const TransactionDetail = () => {
     }
   }, [id, navigate, toast]);
 
+  // Refresh transaction wrapper for child components
+  const refreshTransaction = async () => {
+    await loadTransaction();
+  };
+
   useEffect(() => {
     loadTransaction();
   }, [loadTransaction]);
@@ -104,7 +109,10 @@ const TransactionDetail = () => {
             </div>
           </div>
         ) : transaction ? (
-          <DetailedView transaction={transaction} />
+          <DetailedView 
+            transaction={transaction} 
+            refreshTransaction={refreshTransaction} 
+          />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-muted-foreground mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

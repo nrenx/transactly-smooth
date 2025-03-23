@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label';
 import { dbManager } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
 import { generateId } from '@/lib/utils';
-import { Plus, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Plus, Trash2, Edit, Save } from 'lucide-react';
 
 interface NotesContentProps {
   notes: Note[];
@@ -19,10 +18,11 @@ interface NotesContentProps {
 
 const NotesContent: React.FC<NotesContentProps> = ({ notes, transaction, refreshTransaction }) => {
   const [isAddingNote, setIsAddingNote] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditingNoteId, setIsEditingNoteId] = useState<string | null>(null);
+  const [isDeletingNoteId, setIsDeletingNoteId] = useState<string | null>(null);
   const [newNoteContent, setNewNoteContent] = useState('');
+  const [editNoteContent, setEditNoteContent] = useState('');
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const addNote = async () => {
     try {
@@ -68,19 +68,87 @@ const NotesContent: React.FC<NotesContentProps> = ({ notes, transaction, refresh
     }
   };
 
-  const handleDelete = async () => {
+  const startEditingNote = (note: Note) => {
+    setIsEditingNoteId(note.id);
+    setEditNoteContent(note.content);
+  };
+
+  const cancelEditingNote = () => {
+    setIsEditingNoteId(null);
+    setEditNoteContent('');
+  };
+
+  const saveEditedNote = async (noteId: string) => {
     try {
-      await dbManager.deleteTransaction(transaction.id);
+      if (!editNoteContent.trim()) {
+        toast({
+          title: "Error",
+          description: "Note content cannot be empty",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Find the note in the transaction's notes array
+      const updatedNotes = transaction.notes.map(note => 
+        note.id === noteId 
+          ? { ...note, content: editNoteContent.trim() } 
+          : note
+      );
+
+      // Update transaction with edited note
+      const updatedTransaction = {
+        ...transaction,
+        notes: updatedNotes,
+      };
+
+      await dbManager.updateTransaction(updatedTransaction);
+      
       toast({
         title: "Success",
-        description: "Transaction deleted successfully",
+        description: "Note updated successfully",
       });
-      navigate('/');
+      
+      setIsEditingNoteId(null);
+      setEditNoteContent('');
+      
+      await refreshTransaction();
     } catch (error) {
-      console.error('Error deleting transaction:', error);
+      console.error('Error updating note:', error);
       toast({
         title: "Error",
-        description: "Failed to delete transaction",
+        description: "Failed to update note",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteNote = async (noteId: string) => {
+    try {
+      // Filter out the note to be deleted
+      const updatedNotes = transaction.notes.filter(note => note.id !== noteId);
+
+      // Update transaction without the deleted note
+      const updatedTransaction = {
+        ...transaction,
+        notes: updatedNotes,
+      };
+
+      await dbManager.updateTransaction(updatedTransaction);
+      
+      toast({
+        title: "Success",
+        description: "Note deleted successfully",
+      });
+      
+      setIsDeletingNoteId(null);
+      
+      await refreshTransaction();
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete note",
         variant: "destructive",
       });
     }
@@ -112,8 +180,55 @@ const NotesContent: React.FC<NotesContentProps> = ({ notes, transaction, refresh
                 <span className="text-xs text-muted-foreground">
                   {new Date(note.date).toLocaleDateString()} {new Date(note.date).toLocaleTimeString()}
                 </span>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => startEditingNote(note)}
+                    className="h-7 px-2"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setIsDeletingNoteId(note.id)}
+                    className="h-7 px-2 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
-              <p className="whitespace-pre-wrap">{note.content}</p>
+              
+              {isEditingNoteId === note.id ? (
+                <div className="mt-2 space-y-3">
+                  <Textarea
+                    value={editNoteContent}
+                    onChange={(e) => setEditNoteContent(e.target.value)}
+                    rows={3}
+                    className="w-full"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={cancelEditingNote}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={() => saveEditedNote(note.id)}
+                    >
+                      <Save className="h-3.5 w-3.5 mr-1" />
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap">{note.content}</p>
+              )}
             </div>
           ))}
         </div>
@@ -144,28 +259,24 @@ const NotesContent: React.FC<NotesContentProps> = ({ notes, transaction, refresh
         </DialogContent>
       </Dialog>
 
-      <div className="mt-8 border-t pt-6">
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="destructive">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Transaction
+      {/* Delete Note Confirmation Dialog */}
+      <Dialog open={!!isDeletingNoteId} onOpenChange={(open) => !open && setIsDeletingNoteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Note</DialogTitle>
+          </DialogHeader>
+          <p className="py-4">Are you sure you want to delete this note? This action cannot be undone.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeletingNoteId(null)}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => isDeletingNoteId && deleteNote(isDeletingNoteId)}
+            >
+              Delete
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Are you sure?</DialogTitle>
-            </DialogHeader>
-            <p className="py-4">This action cannot be undone. This will permanently delete this transaction and all its data.</p>
-            <DialogFooter className="flex space-x-2 justify-end">
-              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-              <Button variant="destructive" onClick={handleDelete}>
-                Delete
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
