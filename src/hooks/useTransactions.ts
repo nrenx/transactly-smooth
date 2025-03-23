@@ -110,38 +110,6 @@ export const useTransactions = () => {
     }
   };
 
-  const exportData = async () => {
-    try {
-      const jsonData = await dbManager.exportData();
-      
-      // Create a blob and download it
-      const blob = new Blob([jsonData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `transactly-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Clean up
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: 'Export Successful',
-        description: 'Transaction data has been exported successfully',
-      });
-    } catch (error) {
-      console.error('Export failed:', error);
-      toast({
-        title: 'Export Failed',
-        description: 'Failed to export transaction data',
-        variant: 'destructive',
-      });
-    }
-  };
-
   // Filter transactions when searchQuery changes
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -170,7 +138,6 @@ export const useTransactions = () => {
     loading,
     searchQuery,
     setSearchQuery,
-    exportData,
     loadTransactions
   };
 };

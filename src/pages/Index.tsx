@@ -12,17 +12,36 @@ import CreateTransactionDialog from '@/components/index/CreateTransactionDialog'
 import EmptyState from '@/components/index/EmptyState';
 import LoadingSpinner from '@/components/index/LoadingSpinner';
 import TransactionList from '@/components/index/TransactionList';
+import { exportTransactions, ExportFormat } from '@/lib/exportUtils';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { 
     filteredTransactions, 
     loading, 
     searchQuery, 
-    setSearchQuery,
-    exportData
+    setSearchQuery
   } = useTransactions();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  const handleExport = async (format: ExportFormat) => {
+    try {
+      await exportTransactions(filteredTransactions, format);
+      toast({
+        title: 'Export Successful',
+        description: `Transaction data has been exported as ${format.toUpperCase()}`,
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({
+        title: 'Export Failed',
+        description: 'Failed to export transaction data',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <motion.div 
@@ -30,7 +49,7 @@ const Index = () => {
       animate={{ opacity: 1 }}
       className="min-h-screen flex flex-col"
     >
-      <Header onExport={exportData} />
+      <Header onExport={handleExport} />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
