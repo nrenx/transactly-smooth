@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Transaction } from '@/lib/types';
+import { Transaction, LoadBuy } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Edit, Info, Save, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -17,7 +16,7 @@ interface LoadBuyContentProps {
 const LoadBuyContent: React.FC<LoadBuyContentProps> = ({ data, transaction, refreshTransaction }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(data || {
+  const [formData, setFormData] = useState<LoadBuy>(data || {
     supplierName: '',
     supplierContact: '',
     goodsName: '',
@@ -64,7 +63,7 @@ const LoadBuyContent: React.FC<LoadBuyContentProps> = ({ data, transaction, refr
         
         setFormData(prev => ({
           ...prev,
-          [name]: newValue,
+          [name]: newValue as number,
           totalCost,
           balance: totalCost - prev.amountPaid
         }));
@@ -73,10 +72,11 @@ const LoadBuyContent: React.FC<LoadBuyContentProps> = ({ data, transaction, refr
       
       // Auto-calculate balance when amountPaid changes
       if (name === 'amountPaid') {
-        const balance = formData.totalCost - parseFloat(value);
+        const amountPaidValue = parseFloat(value) || 0;
+        const balance = formData.totalCost - amountPaidValue;
         setFormData(prev => ({
           ...prev,
-          [name]: newValue,
+          amountPaid: amountPaidValue,
           balance
         }));
         return;
