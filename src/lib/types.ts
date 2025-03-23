@@ -11,6 +11,7 @@ export interface Transaction {
   payments: Payment[];
   notes: Note[];
   attachments: Attachment[];
+  businessName?: string;
 }
 
 export interface LoadBuy {
@@ -22,6 +23,8 @@ export interface LoadBuy {
   totalCost: number;
   amountPaid: number;
   balance: number;
+  paymentDueDate?: string;
+  paymentFrequency?: 'one-time' | 'weekly' | 'monthly' | 'quarterly';
 }
 
 export interface Transportation {
@@ -33,6 +36,10 @@ export interface Transportation {
   destination: string;
   charges: number;
   notes?: string; // New field for transportation notes
+  departureDate?: string;
+  departureTime?: string;
+  arrivalDate?: string;
+  arrivalTime?: string;
 }
 
 export interface LoadSold {
@@ -43,6 +50,8 @@ export interface LoadSold {
   totalSaleAmount: number;
   amountReceived: number;
   pendingBalance: number;
+  paymentDueDate?: string;
+  paymentFrequency?: 'one-time' | 'weekly' | 'monthly' | 'quarterly';
 }
 
 export interface Payment {
@@ -53,6 +62,9 @@ export interface Payment {
   counterparty: string;
   isIncoming: boolean;
   notes?: string;
+  paymentTime?: string;
+  installmentNumber?: number;
+  totalInstallments?: number;
 }
 
 export interface Note {

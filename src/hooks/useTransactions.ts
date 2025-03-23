@@ -9,6 +9,7 @@ export const useTransactions = () => {
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const { toast } = useToast();
 
   const loadTransactions = async () => {
@@ -61,7 +62,10 @@ export const useTransactions = () => {
               mode: 'upi',
               counterparty: 'Northern Farms Ltd.',
               isIncoming: false,
-              notes: 'Initial payment for wheat purchase'
+              notes: 'Initial payment for wheat purchase',
+              paymentTime: new Date().toTimeString().split(' ')[0],
+              installmentNumber: 1,
+              totalInstallments: 2
             },
             {
               id: 'pay-' + (Date.now() + 1).toString(36),
@@ -70,7 +74,10 @@ export const useTransactions = () => {
               mode: 'bank',
               counterparty: 'City Mills',
               isIncoming: true,
-              notes: 'Advance payment for wheat delivery'
+              notes: 'Advance payment for wheat delivery',
+              paymentTime: new Date().toTimeString().split(' ')[0],
+              installmentNumber: 1,
+              totalInstallments: 2
             }
           ],
           notes: [
@@ -88,7 +95,8 @@ export const useTransactions = () => {
               uri: 'https://via.placeholder.com/150',
               date: new Date().toISOString()
             }
-          ]
+          ],
+          businessName: 'TransactLy'
         };
         
         await dbManager.addTransaction(mockTransaction);
@@ -110,22 +118,42 @@ export const useTransactions = () => {
     }
   };
 
-  // Filter transactions when searchQuery changes
+  // Filter transactions when searchQuery or statusFilter changes
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredTransactions(transactions);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = transactions.filter(transaction => 
-        transaction.name?.toLowerCase().includes(query) ||
-        transaction.id.toLowerCase().includes(query) ||
-        (transaction.loadBuy?.supplierName?.toLowerCase().includes(query)) ||
-        (transaction.loadSold?.buyerName?.toLowerCase().includes(query)) ||
-        (transaction.loadBuy?.goodsName?.toLowerCase().includes(query))
+    let filtered = transactions;
+    
+    // Status filter based on keywords like "pending", "completed", "success", etc.
+    if (statusFilter) {
+      filtered = filtered.filter(transaction => 
+        transaction.status === statusFilter
       );
-      setFilteredTransactions(filtered);
     }
-  }, [searchQuery, transactions]);
+    
+    // Text search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      
+      // Special case handling for status keywords in search
+      if (query === 'pending' || query === 'pending transaction') {
+        filtered = filtered.filter(transaction => transaction.status === 'pending');
+      } else if (query === 'completed' || query === 'success' || query === 'successful' || query === 'successful transaction') {
+        filtered = filtered.filter(transaction => transaction.status === 'completed');
+      } else if (query === 'cancelled' || query === 'canceled' || query === 'cancelled transaction') {
+        filtered = filtered.filter(transaction => transaction.status === 'cancelled');
+      } else {
+        // Regular search across multiple fields
+        filtered = filtered.filter(transaction => 
+          transaction.name?.toLowerCase().includes(query) ||
+          transaction.id.toLowerCase().includes(query) ||
+          (transaction.loadBuy?.supplierName?.toLowerCase().includes(query)) ||
+          (transaction.loadSold?.buyerName?.toLowerCase().includes(query)) ||
+          (transaction.loadBuy?.goodsName?.toLowerCase().includes(query))
+        );
+      }
+    }
+    
+    setFilteredTransactions(filtered);
+  }, [searchQuery, statusFilter, transactions]);
 
   // Load transactions on component mount
   useEffect(() => {
@@ -138,6 +166,8 @@ export const useTransactions = () => {
     loading,
     searchQuery,
     setSearchQuery,
+    statusFilter,
+    setStatusFilter,
     loadTransactions
   };
 };
