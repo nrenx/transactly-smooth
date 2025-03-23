@@ -13,6 +13,7 @@ import LoadSoldContent from './tab-contents/LoadSoldContent';
 import PaymentsContent from './tab-contents/PaymentsContent';
 import NotesContent from './tab-contents/NotesContent';
 import AttachmentsContent from './tab-contents/AttachmentsContent';
+import { Trash2 } from 'lucide-react';
 
 interface TabContentProps {
   activeTab: TabKey;
@@ -102,27 +103,33 @@ const TabContent: React.FC<TabContentProps> = ({ activeTab, transaction, refresh
             />
           )}
           
-          <div className="mt-8 flex justify-between">
-            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="destructive">Delete Transaction</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Are you sure?</DialogTitle>
-                </DialogHeader>
-                <p className="py-4">This action cannot be undone. This will permanently delete this transaction and all its data.</p>
-                <DialogFooter className="flex space-x-2 justify-end">
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-                  <Button variant="destructive" onClick={handleDelete}>
-                    Delete
+          {/* Only show delete transaction button in notes section */}
+          {activeTab === 'notes' && (
+            <div className="mt-8 border-t pt-6">
+              <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Transaction
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Are you sure?</DialogTitle>
+                  </DialogHeader>
+                  <p className="py-4">This action cannot be undone. This will permanently delete this transaction and all its data.</p>
+                  <DialogFooter className="flex space-x-2 justify-end">
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button variant="destructive" onClick={handleDelete}>
+                      Delete
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
     </div>

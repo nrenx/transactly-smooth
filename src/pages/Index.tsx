@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,9 +15,9 @@ import { exportTransactions, ExportFormat } from '@/lib/exportUtils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Users, UserPlus, LineChart } from 'lucide-react';
+import { Settings, Users, UserPlus, LineChart, Plus } from 'lucide-react';
 import { dbManager } from '@/lib/db';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -36,6 +35,8 @@ const Index = () => {
   const [businessName, setBusinessName] = useState('TransactLy');
   const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
   const [newBusinessName, setNewBusinessName] = useState('');
+  const [isBuyerDialogOpen, setIsBuyerDialogOpen] = useState(false);
+  const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const handleExport = async (format: ExportFormat) => {
@@ -189,6 +190,41 @@ const Index = () => {
                 <p>Feature coming soon!</p>
               </div>
             </CardContent>
+            <CardFooter className="flex justify-end">
+              <Dialog open={isBuyerDialogOpen} onOpenChange={setIsBuyerDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Buyer
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Buyer</DialogTitle>
+                    <DialogDescription>
+                      Enter the details of the new buyer to add them to your system.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="buyerName" className="text-right">Name</Label>
+                      <Input id="buyerName" className="col-span-3" placeholder="Enter buyer name" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="buyerEmail" className="text-right">Email</Label>
+                      <Input id="buyerEmail" className="col-span-3" placeholder="Enter buyer email" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="buyerPhone" className="text-right">Phone</Label>
+                      <Input id="buyerPhone" className="col-span-3" placeholder="Enter buyer phone" />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit">Add Buyer</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardFooter>
           </Card>
         </TabsContent>
         
@@ -204,6 +240,41 @@ const Index = () => {
                 <p>Feature coming soon!</p>
               </div>
             </CardContent>
+            <CardFooter className="flex justify-end">
+              <Dialog open={isSellerDialogOpen} onOpenChange={setIsSellerDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Seller
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Seller</DialogTitle>
+                    <DialogDescription>
+                      Enter the details of the new seller to add them to your system.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="sellerName" className="text-right">Name</Label>
+                      <Input id="sellerName" className="col-span-3" placeholder="Enter seller name" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="sellerEmail" className="text-right">Email</Label>
+                      <Input id="sellerEmail" className="col-span-3" placeholder="Enter seller email" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="sellerPhone" className="text-right">Phone</Label>
+                      <Input id="sellerPhone" className="col-span-3" placeholder="Enter seller phone" />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit">Add Seller</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardFooter>
           </Card>
         </TabsContent>
         
