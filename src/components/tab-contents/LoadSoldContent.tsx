@@ -93,6 +93,12 @@ const LoadSoldContent: React.FC<LoadSoldContentProps> = ({ data, transaction, re
         loadSold: formData,
       };
       
+      // Check if we should update status to completed
+      if (transaction.loadBuy && formData.amountReceived >= formData.totalSaleAmount && 
+          transaction.loadBuy.amountPaid >= transaction.loadBuy.totalCost) {
+        updatedTransaction.status = 'completed';
+      }
+      
       await dbManager.updateTransaction(updatedTransaction);
       await refreshTransaction();
       setIsEditing(false);

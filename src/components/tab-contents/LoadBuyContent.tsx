@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Transaction, LoadBuy } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -95,6 +96,12 @@ const LoadBuyContent: React.FC<LoadBuyContentProps> = ({ data, transaction, refr
         // Update totalAmount in the transaction to match the loadBuy totalCost
         totalAmount: formData.totalCost
       };
+      
+      // Check if we should update status to completed
+      if (transaction.loadSold && formData.amountPaid >= formData.totalCost && 
+          transaction.loadSold.amountReceived >= transaction.loadSold.totalSaleAmount) {
+        updatedTransaction.status = 'completed';
+      }
       
       await dbManager.updateTransaction(updatedTransaction);
       await refreshTransaction();

@@ -13,7 +13,6 @@ import LoadSoldContent from './tab-contents/LoadSoldContent';
 import PaymentsContent from './tab-contents/PaymentsContent';
 import NotesContent from './tab-contents/NotesContent';
 import AttachmentsContent from './tab-contents/AttachmentsContent';
-import { Trash2 } from 'lucide-react';
 
 interface TabContentProps {
   activeTab: TabKey;
@@ -22,27 +21,8 @@ interface TabContentProps {
 }
 
 const TabContent: React.FC<TabContentProps> = ({ activeTab, transaction, refreshTransaction }) => {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const handleDelete = async () => {
-    try {
-      await dbManager.deleteTransaction(transaction.id);
-      toast({
-        title: "Success",
-        description: "Transaction deleted successfully",
-      });
-      navigate('/');
-    } catch (error) {
-      console.error('Error deleting transaction:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete transaction",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <div className="mt-6">
@@ -104,32 +84,6 @@ const TabContent: React.FC<TabContentProps> = ({ activeTab, transaction, refresh
           )}
         </motion.div>
       </AnimatePresence>
-
-      {/* Transaction deletion section - now separate at the bottom of any tab */}
-      <div className="mt-6 border-t pt-4">
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="destructive" size="sm">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Transaction
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Are you sure?</DialogTitle>
-            </DialogHeader>
-            <p className="py-4">This action cannot be undone. This will permanently delete this transaction and all its data.</p>
-            <DialogFooter className="flex space-x-2 justify-end">
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button variant="destructive" onClick={handleDelete}>
-                Delete
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
     </div>
   );
 };
