@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,6 +23,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
+interface Buyer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  date: string;
+}
+
+interface Seller {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  date: string;
+}
+
 const Index = () => {
   const { 
     filteredTransactions, 
@@ -37,6 +54,10 @@ const Index = () => {
   const [newBusinessName, setNewBusinessName] = useState('');
   const [isBuyerDialogOpen, setIsBuyerDialogOpen] = useState(false);
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
+  const [buyers, setBuyers] = useState<Buyer[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [newBuyer, setNewBuyer] = useState({ name: '', email: '', phone: '' });
+  const [newSeller, setNewSeller] = useState({ name: '', email: '', phone: '' });
   const { toast } = useToast();
 
   const handleExport = async (format: ExportFormat) => {
@@ -92,8 +113,116 @@ const Index = () => {
     }
   };
 
+  const loadBuyersAndSellers = async () => {
+    try {
+      const savedBuyers = await localStorage.getItem('buyers');
+      const savedSellers = await localStorage.getItem('sellers');
+      
+      if (savedBuyers) {
+        setBuyers(JSON.parse(savedBuyers));
+      }
+      
+      if (savedSellers) {
+        setSellers(JSON.parse(savedSellers));
+      }
+    } catch (error) {
+      console.error('Failed to load buyers and sellers:', error);
+    }
+  };
+
+  const handleBuyerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewBuyer(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSellerInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewSeller(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddBuyer = async () => {
+    try {
+      if (!newBuyer.name || !newBuyer.phone) {
+        toast({
+          title: 'Validation Error',
+          description: 'Name and Phone are required fields',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      const newBuyerEntry: Buyer = {
+        id: `buyer-${Date.now()}`,
+        name: newBuyer.name,
+        email: newBuyer.email,
+        phone: newBuyer.phone,
+        date: new Date().toISOString(),
+      };
+      
+      const updatedBuyers = [...buyers, newBuyerEntry];
+      setBuyers(updatedBuyers);
+      await localStorage.setItem('buyers', JSON.stringify(updatedBuyers));
+      
+      setNewBuyer({ name: '', email: '', phone: '' });
+      setIsBuyerDialogOpen(false);
+      
+      toast({
+        title: 'Success',
+        description: 'Buyer added successfully',
+      });
+    } catch (error) {
+      console.error('Failed to add buyer:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add buyer',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAddSeller = async () => {
+    try {
+      if (!newSeller.name || !newSeller.phone) {
+        toast({
+          title: 'Validation Error',
+          description: 'Name and Phone are required fields',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      const newSellerEntry: Seller = {
+        id: `seller-${Date.now()}`,
+        name: newSeller.name,
+        email: newSeller.email,
+        phone: newSeller.phone,
+        date: new Date().toISOString(),
+      };
+      
+      const updatedSellers = [...sellers, newSellerEntry];
+      setSellers(updatedSellers);
+      await localStorage.setItem('sellers', JSON.stringify(updatedSellers));
+      
+      setNewSeller({ name: '', email: '', phone: '' });
+      setIsSellerDialogOpen(false);
+      
+      toast({
+        title: 'Success',
+        description: 'Seller added successfully',
+      });
+    } catch (error) {
+      console.error('Failed to add seller:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add seller',
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
     loadBusinessName();
+    loadBuyersAndSellers();
   }, []);
 
   return (
@@ -185,10 +314,28 @@ const Index = () => {
               <CardDescription>Add and manage your buyers in one place</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <p>This section allows you to add new buyers by entering their details.</p>
-                <p>Feature coming soon!</p>
-              </div>
+              {buyers.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  No buyers added yet. Add your first buyer.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {buyers.map(buyer => (
+                    <div key={buyer.id} className="border rounded-lg p-4 hover:bg-accent/5 transition-colors">
+                      <div className="flex flex-col md:flex-row justify-between">
+                        <div>
+                          <h3 className="font-medium">{buyer.name}</h3>
+                          <p className="text-sm text-muted-foreground">{buyer.phone}</p>
+                          {buyer.email && <p className="text-sm text-muted-foreground">{buyer.email}</p>}
+                        </div>
+                        <div className="text-sm text-right mt-2 md:mt-0">
+                          <p className="text-muted-foreground">Added on {new Date(buyer.date).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex justify-end">
               <Dialog open={isBuyerDialogOpen} onOpenChange={setIsBuyerDialogOpen}>
@@ -208,19 +355,41 @@ const Index = () => {
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="buyerName" className="text-right">Name</Label>
-                      <Input id="buyerName" className="col-span-3" placeholder="Enter buyer name" />
+                      <Input 
+                        id="buyerName" 
+                        name="name"
+                        className="col-span-3" 
+                        placeholder="Enter buyer name" 
+                        value={newBuyer.name}
+                        onChange={handleBuyerInputChange}
+                      />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="buyerEmail" className="text-right">Email</Label>
-                      <Input id="buyerEmail" className="col-span-3" placeholder="Enter buyer email" />
+                      <Input 
+                        id="buyerEmail" 
+                        name="email"
+                        className="col-span-3" 
+                        placeholder="Enter buyer email" 
+                        value={newBuyer.email}
+                        onChange={handleBuyerInputChange}
+                      />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="buyerPhone" className="text-right">Phone</Label>
-                      <Input id="buyerPhone" className="col-span-3" placeholder="Enter buyer phone" />
+                      <Input 
+                        id="buyerPhone" 
+                        name="phone"
+                        className="col-span-3" 
+                        placeholder="Enter buyer phone" 
+                        value={newBuyer.phone}
+                        onChange={handleBuyerInputChange}
+                      />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button type="submit">Add Buyer</Button>
+                    <Button variant="outline" onClick={() => setIsBuyerDialogOpen(false)}>Cancel</Button>
+                    <Button type="button" onClick={handleAddBuyer}>Add Buyer</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -235,10 +404,28 @@ const Index = () => {
               <CardDescription>Add and manage your sellers in one place</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <p>This section allows you to add new sellers by entering their details.</p>
-                <p>Feature coming soon!</p>
-              </div>
+              {sellers.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  No sellers added yet. Add your first seller.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {sellers.map(seller => (
+                    <div key={seller.id} className="border rounded-lg p-4 hover:bg-accent/5 transition-colors">
+                      <div className="flex flex-col md:flex-row justify-between">
+                        <div>
+                          <h3 className="font-medium">{seller.name}</h3>
+                          <p className="text-sm text-muted-foreground">{seller.phone}</p>
+                          {seller.email && <p className="text-sm text-muted-foreground">{seller.email}</p>}
+                        </div>
+                        <div className="text-sm text-right mt-2 md:mt-0">
+                          <p className="text-muted-foreground">Added on {new Date(seller.date).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex justify-end">
               <Dialog open={isSellerDialogOpen} onOpenChange={setIsSellerDialogOpen}>
@@ -258,19 +445,41 @@ const Index = () => {
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="sellerName" className="text-right">Name</Label>
-                      <Input id="sellerName" className="col-span-3" placeholder="Enter seller name" />
+                      <Input 
+                        id="sellerName" 
+                        name="name"
+                        className="col-span-3" 
+                        placeholder="Enter seller name" 
+                        value={newSeller.name}
+                        onChange={handleSellerInputChange}
+                      />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="sellerEmail" className="text-right">Email</Label>
-                      <Input id="sellerEmail" className="col-span-3" placeholder="Enter seller email" />
+                      <Input 
+                        id="sellerEmail" 
+                        name="email"
+                        className="col-span-3" 
+                        placeholder="Enter seller email" 
+                        value={newSeller.email}
+                        onChange={handleSellerInputChange}
+                      />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="sellerPhone" className="text-right">Phone</Label>
-                      <Input id="sellerPhone" className="col-span-3" placeholder="Enter seller phone" />
+                      <Input 
+                        id="sellerPhone" 
+                        name="phone"
+                        className="col-span-3" 
+                        placeholder="Enter seller phone" 
+                        value={newSeller.phone}
+                        onChange={handleSellerInputChange}
+                      />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button type="submit">Add Seller</Button>
+                    <Button variant="outline" onClick={() => setIsSellerDialogOpen(false)}>Cancel</Button>
+                    <Button type="button" onClick={handleAddSeller}>Add Seller</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
