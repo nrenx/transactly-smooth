@@ -8,98 +8,125 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { dbManager } from '@/lib/db';
 import TransportationContent from './TransportationComponent';
+import LoadBuyContent from './tab-contents/LoadBuyContent';
+import LoadSoldContent from './tab-contents/LoadSoldContent';
+import PaymentsContent from './tab-contents/PaymentsContent';
+import NotesContent from './tab-contents/NotesContent';
+import AttachmentsContent from './tab-contents/AttachmentsContent';
 
-// Create the missing tab content components
-<lov-write file_path="src/components/tab-contents/LoadBuyContent.tsx">
-import React from 'react';
-import { Transaction } from '@/lib/types';
-
-interface LoadBuyContentProps {
-  data: Transaction['loadBuy'];
+interface TabContentProps {
+  activeTab: TabKey;
   transaction: Transaction;
   refreshTransaction: () => Promise<void>;
 }
 
-const LoadBuyContent: React.FC<LoadBuyContentProps> = ({ data, transaction, refreshTransaction }) => {
-  if (!data) {
-    return <div className="text-muted-foreground text-center py-8">No load buy information available</div>;
-  }
+const TabContent: React.FC<TabContentProps> = ({ activeTab, transaction, refreshTransaction }) => {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleDelete = async () => {
+    try {
+      await dbManager.deleteTransaction(transaction.id);
+      toast({
+        title: "Success",
+        description: "Transaction deleted successfully",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete transaction",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Supplier Information</h3>
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Supplier Name</p>
-              <p className="font-medium">{data.supplierName}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Contact Information</p>
-              <p className="font-medium">{data.supplierContact || 'N/A'}</p>
-            </div>
+    <div className="mt-6">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.2 }}
+          className="bg-card rounded-lg p-6 shadow-sm border"
+        >
+          {activeTab === 'loadBuy' && transaction.loadBuy && (
+            <LoadBuyContent 
+              data={transaction.loadBuy} 
+              transaction={transaction} 
+              refreshTransaction={refreshTransaction} 
+            />
+          )}
+          
+          {activeTab === 'transportation' && transaction.transportation && (
+            <TransportationContent 
+              data={transaction.transportation} 
+              transaction={transaction} 
+              refreshTransaction={refreshTransaction} 
+            />
+          )}
+          
+          {activeTab === 'loadSold' && transaction.loadSold && (
+            <LoadSoldContent 
+              data={transaction.loadSold} 
+              transaction={transaction} 
+              refreshTransaction={refreshTransaction} 
+            />
+          )}
+          
+          {activeTab === 'payments' && (
+            <PaymentsContent 
+              payments={transaction.payments} 
+              transaction={transaction} 
+              refreshTransaction={refreshTransaction} 
+            />
+          )}
+          
+          {activeTab === 'notes' && (
+            <NotesContent 
+              notes={transaction.notes} 
+              transaction={transaction} 
+              refreshTransaction={refreshTransaction} 
+            />
+          )}
+          
+          {activeTab === 'attachments' && (
+            <AttachmentsContent 
+              attachments={transaction.attachments} 
+              transaction={transaction} 
+              refreshTransaction={refreshTransaction} 
+            />
+          )}
+          
+          <div className="mt-8 flex justify-between">
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="destructive">Delete Transaction</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Are you sure?</DialogTitle>
+                </DialogHeader>
+                <p className="py-4">This action cannot be undone. This will permanently delete this transaction and all its data.</p>
+                <DialogFooter className="flex space-x-2 justify-end">
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button variant="destructive" onClick={handleDelete}>
+                    Delete
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Goods Information</h3>
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Goods Name</p>
-              <p className="font-medium">{data.goodsName}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Quantity</p>
-              <p className="font-medium">{data.quantity} units</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-medium mb-4">Financial Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <p className="text-sm text-muted-foreground">Purchase Rate</p>
-            <p className="text-lg font-semibold">${data.purchaseRate.toFixed(2)}/unit</p>
-          </div>
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <p className="text-sm text-muted-foreground">Total Cost</p>
-            <p className="text-lg font-semibold">${data.totalCost.toFixed(2)}</p>
-          </div>
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <p className="text-sm text-muted-foreground">Amount Paid</p>
-            <p className="text-lg font-semibold">${data.amountPaid.toFixed(2)}</p>
-          </div>
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <p className="text-sm text-muted-foreground">Balance</p>
-            <p className="text-lg font-semibold">${data.balance.toFixed(2)}</p>
-          </div>
-        </div>
-      </div>
-      
-      {(data.paymentDueDate || data.paymentFrequency) && (
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-medium mb-4">Payment Schedule</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {data.paymentDueDate && (
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">Payment Due Date</p>
-                <p className="text-lg font-semibold">{new Date(data.paymentDueDate).toLocaleDateString()}</p>
-              </div>
-            )}
-            {data.paymentFrequency && (
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">Payment Frequency</p>
-                <p className="text-lg font-semibold capitalize">{data.paymentFrequency}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 };
 
-export default LoadBuyContent;
+export default TabContent;
