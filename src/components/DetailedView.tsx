@@ -7,13 +7,14 @@ import { dbManager } from '@/lib/db';
 
 interface DetailedViewProps {
   transaction: Transaction;
+  refreshTransaction?: () => Promise<void>; // Added refreshTransaction as an optional prop
 }
 
-const DetailedView = ({ transaction }: DetailedViewProps) => {
+const DetailedView = ({ transaction, refreshTransaction: externalRefresh }: DetailedViewProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>('loadBuy');
   const [currentTransaction, setCurrentTransaction] = useState<Transaction>(transaction);
 
-  const refreshTransaction = useCallback(async () => {
+  const internalRefreshTransaction = useCallback(async () => {
     try {
       const refreshedTransaction = await dbManager.getTransaction(transaction.id);
       if (refreshedTransaction) {
@@ -23,6 +24,9 @@ const DetailedView = ({ transaction }: DetailedViewProps) => {
       console.error("Error refreshing transaction:", error);
     }
   }, [transaction.id]);
+
+  // Use external refresh if provided, otherwise use internal refresh
+  const refreshTransaction = externalRefresh || internalRefreshTransaction;
 
   return (
     <div className="flex flex-col md:flex-row h-full w-full overflow-hidden">

@@ -110,8 +110,8 @@ const TransactionDetail = () => {
           </div>
         ) : transaction ? (
           <DetailedView 
-            transaction={transaction} 
-            refreshTransaction={refreshTransaction} 
+            transaction={transaction}
+            refreshTransaction={refreshTransaction}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
